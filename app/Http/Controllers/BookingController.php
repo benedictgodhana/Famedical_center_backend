@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Booking;
 use App\Models\Service;
 use App\Models\User;
+use App\Models\PaymentTransaction;
 use App\Models\Employee;
 use App\Notifications\BookingNotificationForUser;
 use App\Notifications\BookingNotificationForEmployee;
@@ -20,12 +21,24 @@ class BookingController extends Controller
         // Validate the incoming request data
         $validatedData = $request->validate([
             'service_id' => 'required',
-            'user_id' => 'required', // Assuming you pass the user ID of the customer
-            'employee_id' => 'required', // Assuming you pass the user ID of the employee
+            'user_id' => 'required',
+            'employee_id' => 'required',
             'date_time' => 'required|date',
             'location' => 'required',
-            // Add more validation rules as needed
+            'contact' => 'required', // Add validation for contact
+            'payment_method' => 'required',
+            'comments' => 'nullable|string|max:255', // Validation for comments, allowing it to be nullable
         ]);
+
+        // Check if the selected employee is already booked at the specified date and time
+        $existingBooking = Booking::where('employee_id', $validatedData['employee_id'])
+                                    ->where('date_time', $validatedData['date_time'])
+                                    ->first();
+
+        if ($existingBooking) {
+            // If an existing booking is found, return an error response
+            return response()->json(['error' => 'Employee is already booked at this time. Please select another time.'], 400);
+        }
 
         try {
             // Create a new booking record
@@ -35,7 +48,19 @@ class BookingController extends Controller
                 'employee_id' => $validatedData['employee_id'],
                 'date_time' => $validatedData['date_time'],
                 'location' => $validatedData['location'],
+                'contact' => $validatedData['contact'], // Assign the contact
+                'payment_method' => $validatedData['payment_method'], // Assign the payment method
                 'status' => 'pending',
+                'comments' => $validatedData['comments'] ?? null, // Assign the comments, if provided
+                // Add more fields as needed
+            ]);
+
+            // Create a new payment transaction record
+            $payment = PaymentTransaction::create([
+                'booking_id' => $booking->id,
+                'amount' => $booking->service->price, // Assuming the service price is stored in the service table
+                'payment_method' => $validatedData['payment_method'],
+                'status' => 'pending', // Initial status of payment transaction
                 // Add more fields as needed
             ]);
 
@@ -46,7 +71,7 @@ class BookingController extends Controller
             $this->notifyUser($booking);
 
             // Return a success response
-            return response()->json(['message' => 'Booking created successfully', 'booking' => $booking], 201);
+            return response()->json(['message' => 'Booking created successfully', 'booking' => $booking, 'payment' => $payment], 201);
         } catch (\Exception $e) {
             // Handle any exceptions, such as database errors or invalid employee ID
             return response()->json(['error' => 'Failed to create booking', 'message' => $e->getMessage()], 500);
@@ -72,7 +97,7 @@ class BookingController extends Controller
 
         // Get the employee user with the role name "employee"
         $employee = User::whereHas('roles', function ($query) {
-            $query->where('name', 'employee');
+            $query->where('name', 'doctor');
         })->first();
 
         // Notify the user about the booking, passing the booking and employee name
