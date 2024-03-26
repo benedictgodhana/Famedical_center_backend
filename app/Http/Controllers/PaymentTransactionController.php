@@ -16,7 +16,7 @@ class PaymentTransactionController extends Controller
         $transformedTransactions = $transactions->map(function ($transaction) {
             return [
                 'id' => $transaction->id,
-                'booking_id' => $transaction->booking->location, // Assuming 'name' is the attribute you want to display
+                'booking_id' => $transaction->booking->user->name, // Assuming 'name' is the attribute you want to display
                 'amount' => $transaction->amount,
                 'payment_method' => $transaction->payment_method,
                 'status' => $transaction->status,
