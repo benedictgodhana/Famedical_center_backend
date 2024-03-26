@@ -38,7 +38,7 @@ public function getEmployeesByService($serviceId)
 
         // Get employees associated with the service
         $employees = User::whereHas('roles', function ($query) {
-            $query->where('name', 'employee');
+            $query->where('name', 'doctor');
         })->whereHas('services', function ($query) use ($serviceId) {
             $query->where('services.id', $serviceId); // Specify the table alias for the id column
         })->get();
