@@ -2,14 +2,15 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use App\Notifications\VueResetPasswordNotification;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
 
@@ -44,21 +45,16 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-
-    public function employees()
+    /**
+     * Send the password reset notification.
+     *
+     * @param  string  $token
+     * @return void
+     */
+    public function sendPasswordResetNotification($token)
     {
-        return $this->roles()->where('name', 'employee');
+        $this->notify(new VueResetPasswordNotification($token));
     }
 
-    public function users()
-    {
-        return $this->belongsToMany(User::class); // As above, customize if needed.
-    }
-
-    public function services()
-    {
-        // Replace 'pivot_table_name' with your actual table name, e.g., 'employee_service'
-        return $this->belongsToMany(Service::class, 'employees', 'user_id', 'service_id');
-    }
-
+    // Define your relationships and other methods here...
 }

@@ -56,6 +56,9 @@ return [
     */
 
     'url' => env('APP_URL', 'http://localhost'),
+    
+    'client_url' => env('VUE_APP_URL', 'http://localhost:5173'),
+
 
     'asset_url' => env('ASSET_URL'),
 

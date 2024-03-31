@@ -53,6 +53,9 @@ Route::middleware('auth:sanctum')->get('/bookings/Employeehistory', [BookingCont
 Route::get('/employees/count', [EmployeeController::class, 'countEmployees']);
 Route::get('/customers/count', [UserController::class, 'countCustomers']);
 Route::get('/get_services', [EmployeeController::class, 'fetchServices']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+
 
 
 

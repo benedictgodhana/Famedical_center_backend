@@ -7,6 +7,10 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Support\Str;
+use App\Notifications\PasswordResetNotification;    c    
 
 class AuthController extends Controller
 {
@@ -67,4 +71,50 @@ class AuthController extends Controller
         // Return a success response with the newly created user
         return response()->json(['user' => $user, 'message' => 'User registered successfully'], 201);
     }
+
+    public function forgotPassword(Request $request)
+    {
+        // Validate request data
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        // Send password reset link
+        $response = Password::sendResetLink(
+            $request->only('email')
+        );
+
+        // Check if the password reset link was sent successfully
+        if ($response == Password::RESET_LINK_SENT) {
+            return response()->json(['status' => 'success']);
+        } else {
+            return response()->json(['status' => 'error']);
+        }
+    }
+
+    public function resetPassword(Request $request)
+    {
+        // Validate request data
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|min:6|confirmed',
+        ]);
+
+        // Reset the user's password
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json(['error' => 'User not found.'], 404);
+        }
+
+        // Update user's password
+        $user->password = bcrypt($request->password);
+        $user->save();
+
+        // Send email notification to user
+        $user->notify(new PasswordResetNotification());
+
+        return response()->json(['message' => 'Password reset successfully.']);
+    }
+
 }
